@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="/style.css">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+        <link href="https://fonts.cdnfonts.com/css/futuristic" rel="stylesheet">
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const container = document.querySelector('.container');
+                const scrollPos = localStorage.getItem('scrollPos');
+                if (scrollPos) {
+                    container.scrollTop = parseInt(scrollPos);
+                    localStorage.removeItem('scrollPos');
+                }
+                document.querySelectorAll('form').forEach(form => {
+                    form.addEventListener('submit', function() {
+                        localStorage.setItem('scrollPos', container.scrollTop);
+                    });
+                });
+                updateButtonStates(<%= currentStep %>);
+            });
+
+            function updateButtonStates(step) {
+                const forms = {
+                    1: document.getElementById('deploy-mock-form'),
+                    2: document.getElementById('get-stable-form'),
+                    3: document.getElementById('deploy-loan-form'),
+                    4: document.getElementById('deploy-pool-form'),
+                    5: document.getElementById('tokenise-loans-form'),
+                    6: document.getElementById('get-loan-form'), 
+                    7: document.getElementById('create-tranches-form'),
+                    8: document.getElementById('buy-tranche-form'),
+                    9: document.getElementById('check-holdings-form'),
+                    10: document.getElementById('check-balance-form'),
+                    11: document.getElementById('deposit-payment-form'),
+                    12: document.getElementById('distribute-payments-form')
+                };
+                Object.values(forms).forEach(f => {
+                    if (f) {
+                        const btn = f.querySelector('button');
+                        btn.disabled = true;
+                        btn.classList.add('button-disabled');
+                    }
+                });
+                const currentForm = forms[step];
+                if (currentForm) {
+                    const btn = currentForm.querySelector('button');
+                    btn.disabled = false;
+                    btn.classList.remove('button-disabled');
+                }
+            }
+        </script>
+        <% if (alert != null) { %>
+            <script>
+                alert("<%= alert %>");
+            </script>
+        <% } %>
+    </head>
+    <body>
+        <div class="header">
+            <div id="author-name">
+                Luca Brülhart | 21-706-098
+            </div>
+            <div id="app-title">
+                <h1>
+                    Tokenised securitisation
+                </h1>
+            </div>
+            <div id="scl-logo">
+                <img src="/images/logo.png" id="logo-image">
+            </div>
+        </div>
+        <div class="container">
+            <div class="bullet-point">
+                <div class="content-bullet">
+                    <h3>
+                        This demonstration is part of the Bachelor Thesis "Securitisation vs Tokenisation: Can the Blockchain do it better?" and 
+                        its goal is to showcase a prototype of smart contracts application to securitise and trade assets. The page is structured
+                        to guide the user through the intended workflow and test hands on the contracts' fucntionalities. All the code for this app
+                        and the smart contracts are available at the following github repository:
+                    </h3>
+
+                    <a id="repo-link" href="https://github.com/Kalu-Bru" target="_blank">
+                        Github repository <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+
+                    <h3>
+                        Please feel free to check out the whole demonstration in this page or to retrieve the smart contracts from the repository
+                        and test them somewhere else. For further questions about this prototype or the thesis, please contact me at this address:
+                    </h3>
+                    <div class="input-group">
+                        <input id="address-input-freelancer" type="text" value="luca.bruelhart@uzh.ch" readonly>
+                        <a class="input-icon" onclick="copyToClipboard()" onmouseover="showTooltip()" onmouseout="hideTooltip()">
+                            <i class="fa-solid fa-copy"></i>
+                        </a>
+                        <div id="tooltip" class="tooltip"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        1. Creating a Mock stablecoin
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    The first step of this demo is to create a mock stablecoin to be able to pay and trade. For this purpose a simple contract is
+                    deployed to initialize a new ERC20 token and to declare the mint function.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    contract MockERC20 is ERC20 {
+        constructor() ERC20("MockUSD", "mUSD") {}
+        function mint(address to, uint256 amt) external {
+            _mint(to, amt); 
+        }
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Go ahead and click on "Deploy contract" to deploy the first contract.
+                </span>
+                <div class="content-bullet">
+                    <% if (!step1) { %>
+                        <form class="deploy-contract-form" id="deploy-mock-form" action="/deploy-mock" method="post">
+                            <button type="submit" id="deploy-contract-button" onclick="deployAnimation()"><i class="fa-solid fa-file-signature" style="padding-right:5%;"></i> Deploy contracts</button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Deployed</button>
+                    <% } %>
+
+                    <div id="deploy-animation" class="animation-container hidden">
+                        <div class="blockchain">
+                            <div class="block" style="--i:0"></div>
+                            <div class="block" style="--i:1"></div>
+                            <div class="block" style="--i:2"></div>
+                            <div class="block" style="--i:3"></div>
+                            <div class="contract"><i class="fa-solid fa-file-contract"></i></div>
+                        </div>
+                        <p>Deploying smart contract...</p>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        2. Getting stablecoins
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    In a second step we are going to get some mock stablecoins by calling mint() with our address and with an amount of 1000000.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function mint(address to, uint256 amt) external {
+        _mint(to, amt); 
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Go ahead and click on "Transact" to mint some tokens to your wallet.
+                </span>
+                <div class="content-bullet">
+                    <% if (!step2) { %>
+                        <form class="deploy-contract-form" id="get-stable-form" action="/get-stable" method="post">
+                            <div id="user-address">
+                                Wallet address:
+                                <input type="text" class="contract-input-data" value="<%= userAddress %>" name="userAddress" readonly>
+                            </div>
+                            <div id="mock-amount">
+                                Amount:
+                                <input type="number" class="contract-input-data" value="1000000" name="mockAmount" readonly>
+                            </div>
+                            <button type="submit" id="deploy-contract-button" onclick="deployAnimation()"><i class="fa-brands fa-ethereum"></i> Transact </button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Tokens collected </button>
+                    <% } %>
+                </div>
+                
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        3. Deploy LoanNFT contract
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    Now that we have the required tokens, let's deploy the LoanNFT smart contract to start tokenising some loans.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    constructor() ERC721("LoanNFT", "LNFT") {
+        admin = msg.sender;
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    The constructor doesn't require any additional variables, so go ahead an click on "Deploy contract".
+                </span>
+                <div class="content-bullet">
+                    <% if (!step3) { %>
+                        <form class="deploy-contract-form" id="deploy-loan-form" action="/deploy-loan" method="post">
+                            <button type="submit" id="deploy-contract-button" onclick="deployAnimation()"><i class="fa-solid fa-file-signature" style="padding-right:5%;"></i> Deploy contract</button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Deployed</button>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        4. Deploy Pool contract
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    After deploying the first two contracts, we now have the required inputs to deploy the Pool smart contract. This contract
+                    uses the previous contracts' addresses to connect with them and call their functions.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    constructor(address _loanNFT, address _stablecoin) {
+        admin = msg.sender;
+        loanNFT = LoanNFT(_loanNFT);
+        stablecoin = IERC20(_stablecoin);
+        trancheToken = new TrancheToken(address(this));
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Here are the addresses of MockERC20 and LoanNFT: click on "Deploy Pool" to deploy the pool contract.
+                </span>
+                <div class="content-bullet">
+                    <% if (!step4) { %>
+                        <form class="deploy-contract-form" id="deploy-pool-form" action="/deploy-pool" method="post">
+                            <div id="user-address">
+                                MockERC20 address:
+                                <input type="text" class="contract-input-data" value="<%= mockERC20 %>" name="mockerc20Address" readonly>
+                            </div>
+                            <div id="mock-amount">
+                                LoanNFT address:
+                                <input type="text" class="contract-input-data" value="<%= loanNFT %>" name="loannftAddress" readonly>
+                            </div>
+                            <button type="submit" id="deploy-contract-button" onclick="deployAnimation()"><i class="fa-solid fa-file-signature" style="padding-right:5%;"></i> Deploy Contract </button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Deployed </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        5. Tokenise loans
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    In this step we are finally ready to tokenise our loans with the standard ERC721. For this purpose, a dataframe containing
+                    different randomly generated loans has been created: the dataframe contains data about the principal amount, the interest rate, 
+                    and the maturity date and is displayed under the code snippet.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function mint(
+        address to,
+        uint256 principal,
+        uint16 interestRateBps,
+        uint64 maturityTimestamp
+    ) external returns (uint256) {
+        require(msg.sender == admin, "LoanNFT: only admin can mint");
+        uint256 tokenId = ++_nextTokenId;
+        _mint(to, tokenId);
+        loanData[tokenId] = LoanData({
+            principal: principal,
+            interestRateBps: interestRateBps,
+            maturityTimestamp: maturityTimestamp,
+            borrower: to
+        });
+        emit LoanMinted(tokenId, to, principal, interestRateBps, maturityTimestamp);
+        return tokenId;
+    }
+                    </code></pre>
+                </div>
+                <div class="content-bullet">
+                    <% if (loans != null) { %>
+                        <table class="loan-table">
+                            <thead>
+                                <tr>
+                                    <th>Principal</th>
+                                    <th>Interest Rate (bps)</th>
+                                    <th>Maturity Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% loans.forEach(loan => { %>
+                                    <tr>
+                                        <td><%= loan.principal.toLocaleString() %></td>
+                                        <td><%= loan.interestRateBps %></td>
+                                        <td class="date"><%= new Date(loan.maturityTimestamp).toLocaleDateString() %></td>
+                                    </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    <% } %>
+                </div>
+                <span id="instructions-1">
+                    Click on "Tokenise loans" to use this dataframe and mint new ERC721 tokens to the contract.
+                </span>
+                <div class="content-bullet">
+                    <% if (!step5) { %>
+                        <form class="deploy-contract-form" id="tokenise-loans-form" action="/tokenise-loans" method="post">
+                            <button type="submit" id="deploy-contract-button" onclick="showTokeniseAnimation()"><i class="fa-brands fa-hive" style="padding-right:5%;"></i> Tokenise loans </button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Tokens minted </button>
+                    <% } %>
+                    <span class="tokenise-animation" style="display:none;">
+                        Tokenising loans...
+                    </span>
+                    <div class="container-cube" style="display:none;">
+                        <div class="scene">
+                            <div class="webpack-cube">
+                                <div class="outer-cube">
+                                    <div class="face face-top"></div>
+                                    <div class="face face-bottom"></div>
+                                    <div class="face face-left"></div>
+                                    <div class="face face-right"></div>
+                                    <div class="face face-front"></div>
+                                    <div class="face face-back"></div>
+                                </div>
+                                <div class="inner-cube">
+                                    <div class="face face-top"></div>
+                                    <div class="face face-bottom"></div>
+                                    <div class="face face-left"></div>
+                                    <div class="face face-right"></div>
+                                    <div class="face face-front"></div>
+                                    <div class="face face-back"></div>
+                                </div>
+                            </div>
+                            <div class="shadows-outer-container">
+                                <div class="shadow-outer"></div>
+                            </div>
+                            <div class="shadows-inner-container">
+                                <div class="shadow-inner"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        6. Get loan data
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    Now that the loans are tokenised, their data are saved in a struct that is accessible to everybody for free.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    struct LoanData {
+        uint256 principal;
+        uint16  interestRateBps;
+        uint64  maturityTimestamp;
+        address borrower;
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    To check the data about a loan, simply enter a tokeId between 0 and 19, and click on "Get loan data".
+                </span>
+                <div class="content-bullet">
+                    <% if (step6 === null) { %>
+                        <form class="deploy-contract-form" id="get-loan-form" action="/loan-data" method="post">
+                            <input type="number" class="contract-input-data" placeholder="Enter a valid tokeId..." name="index" style="padding:2%;width:50%;">
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Get loan data </button>
+                        </form>
+                    <% } else { %>
+                        <div id="contract-balance">
+                            Loan Data
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Principal | <%= step6.principal %> mUSD</li>
+                                <li>Interest rate | <%= step6.interestRate %>%</li>
+                                <li>Maturity | <%= step6.maturityTimestamp %></li>
+                            </ul>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        7. Create tranches
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    Once the loans are tokenised and the tokenIds are saved, we can create the desired tranches. The function createTranche()
+                    allows to pool different tokens using their tokenIds, set notional and return rate bps, and create a classId for the tranche.
+                    After setting up the tranche data, the function mints 1:1 ERC3475 tokens that will later be available for sale.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function createTranche(
+        uint8 classId,
+        uint256[] calldata loans,
+        uint256 notional,
+        uint16 rateBps
+    ) external onlyAdmin returns (uint256) {
+        uint256 seriesId = ++nextSeries[classId];
+        address[] memory contracts = new address[](loans.length);
+        for (uint i = 0; i < loans.length; i++) {
+            contracts[i] = address(loanNFT);
+        }
+        // save tranche infos to struct
+        tranches[classId][seriesId] = TrancheInfo({
+            loanContracts: contracts,
+            loanIds: loans,
+            totalNotional: notional,
+            interestRateBps: rateBps,
+            investors: new address[](0)
+        });
+
+        // mint tranche tokens to pool for sale
+        IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+        txs[0] = IERC3475.Transaction({
+            classId: classId,
+            nonceId: seriesId,
+            amount: notional
+        });
+        trancheToken.issue(address(this), txs);
+        return seriesId;
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Below there are three tranches that are going to be created: in a real application, the tokens assigned to each tranche will be 
+                    chosen based on the loan data to build a profitable risk/return profile, but for simplicity reasons this demo will randomly assign tokens 
+                    to a tranche. Choose a desired return rate bps for every tranche and click on "Create tranches".
+                </span>
+                <div class="content-bullet">
+                    <% if (!step7) { %>
+                        <form class="deploy-contract-form" id="create-tranches-form" action="/create-tranches" method="post">
+                            <div class="tranches-grid">
+                                <div class="tranche-field">
+                                    <input type="text" id="tranche-input-data" value="Senior" readonly>
+                                    <select id="tranche-input-data" name="seniorBps" required>
+                                        <option>300</option>
+                                        <option>350</option>
+                                        <option>400</option>
+                                        <option>450</option>
+                                    </select>
+                                </div>
+                                <div class="tranche-field">
+                                    <input type="text" id="tranche-input-data" value="Mezzanine" readonly>
+                                    <select id="tranche-input-data" name="mezzanineBps" required>
+                                        <option>800</option>
+                                        <option>850</option>
+                                        <option>900</option>
+                                        <option>950</option>
+                                    </select>
+                                </div>
+                                <div class="tranche-field">
+                                    <input type="text" id="tranche-input-data" value="Junior" readonly>
+                                    <select id="tranche-input-data" name="juniorBps" required>
+                                        <option>1200</option>
+                                        <option>1250</option>
+                                        <option>1300</option>
+                                        <option>1350</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Create tranches </button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Tranches created </button>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        8. Invest in the tranche
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    Once the tranches are created, these are open for sale and an investor can buy the desired amount of the desired tranche. The function first
+                    verifies the transfer of the stablecoins to the contract, then it transfers ERC3475 tokens to the investor.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function invest(
+        uint8 classId,
+        uint256 seriesId,
+        uint256 amount
+    ) external {
+        require(
+            stablecoin.transferFrom(msg.sender, address(this), amount),
+            "Pool: payment failed"
+        );
+
+        // record first-time investor
+        if (investorHoldings[classId][seriesId][msg.sender] == 0) {
+            tranches[classId][seriesId].investors.push(msg.sender);
+        }
+
+        IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+        txs[0] = IERC3475.Transaction({
+            classId: classId,
+            nonceId: seriesId,
+            amount: amount
+        });
+        trancheToken.transferFrom(address(this), msg.sender, txs);
+
+        investorHoldings[classId][seriesId][msg.sender] += amount;
+        emit Invested(msg.sender, classId, seriesId, amount);
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Below you can find the informations about the ranches retrived directly from the smart contract. For this transaction
+                    we are going to connect to the contract with another wallet. Please choose a tranche 
+                    to acquire and a desired amount between 10000 and 500000 mUSD, then click on "Buy tranche".
+                </span>
+                <div class="content-bullet">
+                    <% if (trancheInfo != null) { %>
+                        <div id="contract-balance">
+                            Senior Tranche
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Originating contract | <%= trancheInfo.senior.loanContracts %></li>
+                                <li>Loan tokenIds | <%= trancheInfo.senior.loanIds %></li>
+                                <li>Total notional | <%= trancheInfo.senior.totalNotional %></li>
+                                <li>Return rate (bps) | <%= Number(trancheInfo.senior.interestRateBps) %></li>
+                            </ul>
+                        </div>
+                        <div id="contract-balance">
+                            Mezzanine Tranche
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Originating contract | <%= trancheInfo.mezzanine.loanContracts %></li>
+                                <li>Loan tokenIds | <%= trancheInfo.mezzanine.loanIds %></li>
+                                <li>Total notional | <%= trancheInfo.mezzanine.totalNotional %>$</li>
+                                <li>Return rate (bps) | <%= Number(trancheInfo.mezzanine.interestRateBps) %></li>
+                            </ul>
+                        </div>
+                        <div id="contract-balance">
+                            Junior Tranche
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Originating contract | <%= trancheInfo.junior.loanContracts %></li>
+                                <li>Loan tokenIds | <%= trancheInfo.junior.loanIds %></li>
+                                <li>Total notional | <%= trancheInfo.junior.totalNotional %></li>
+                                <li>Return rate (bps) | <%= Number(trancheInfo.junior.interestRateBps) %></li>
+                            </ul>
+                        </div>
+                    <% } %>
+                    <% if (!step8) { %>
+                        <form class="deploy-contract-form" id="buy-tranche-form" action="/buy-tranche" method="post">
+                            <div class="tranches-grid">
+                                <div class="tranche-field">
+                                    <select id="tranche-input-data" name="trancheId" required>
+                                        <option>Senior</option>
+                                        <option>Mezzanine</option>
+                                        <option>Junior</option>
+                                    </select>
+                                    <input type="number" class="contract-input-data" placeholder="Enter a desired amount" name="amount" style="margin-left:5%;">
+                                </div>
+                            </div>
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Buy tranche </button>
+                        </form>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Transaction successful </button>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        9. Check investor holdings
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    The mapping investorHoldings allows to check the investor holdings of the different tranches at any time.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    mapping(uint8 => mapping(uint256 => mapping(address => uint256))) public investorHoldings;
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Click on "Check Holdings" to see how much of every tranche the investor is holding.
+                </span>
+                <div class="content-bullet">
+                    <% if (step9 === null) { %>
+                        <form class="deploy-contract-form" id="check-holdings-form" action="/check-holdings" method="post">
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Check holdings </button>
+                        </form>
+                    <% } else { %>
+                        <div id="contract-balance">
+                            Investor holdings
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Senior: <%= step9.senior %></li>
+                                <li>Mezzanine: <%= step9.mezzanine %></li>
+                                <li>Junior: <%= step9.junior %></li>
+                            </ul>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        10. Check investor balance
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    The make sure that the transfer of the tokens was successful we can directly retrieve the balance of the investor
+                    form the TrancheToken contract. Click on "Check balance" to see the investor balance of ERC3475 tokens.
+                </span>
+                <div class="content-bullet">
+                    <% if (step10 === null) { %>
+                        <form class="deploy-contract-form" id="check-balance-form" action="/check-balance" method="post">
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Check balance </button>
+                        </form>
+                    <% } else { %>
+                        <div id="contract-balance">
+                            Investor balance & Expected Returns
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Current Balance: <%= step10.balance %> tokens</li>
+                                <li>Principal Investment: <%= step10.principal %> mUSD</li>
+                                <li>Interest Rate: <%= step10.interestRate %>%</li>
+                                <li>Expected Interest: <%= step10.interest %> mUSD</li>
+                                <li><strong>Total Expected Return: <%= step10.expectedReturn %> mUSD</strong></li>
+                            </ul>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        11. Borrower payment
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    When a borrower makes his payments on or off-chain, the admin calls depositPayment() to register the transaction in the right
+                    tranche where the underlying loan token lies. The function first transfers the funds from the sender to the contract, then registers 
+                    the payment and emits an event to signal the deposit.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function depositPayment(
+        uint8 classId,
+        uint256 seriesId,
+        uint256 amount
+    ) external onlyAdmin {
+        require(
+            stablecoin.transferFrom(msg.sender, address(this), amount),
+            "Pool: payment failed"
+        );
+        payments[classId][seriesId] += amount;
+        emit PaymentDeposited(classId, seriesId, amount);
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Click on "Deposit payment" to connect with the admin wallet and deposit the funds.
+                </span>
+                <div class="content-bullet">
+                    <% if (step11 === null) { %>
+                        <form class="deploy-contract-form" id="deposit-payment-form" action="/deposit-payment" method="post">
+                            <input type="number" class="contract-input-data" value="10000" name="amount" style="padding:2%;width:50%;" readonly>
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Deposit payment </button>
+                        </form>
+                    <% } else { %>
+                        <span id="instructions-1">
+                            Here are the payment events for each tranche:
+                        </span>
+                        <div id="contract-balance">
+                            Payment Events
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <% step11.payments.forEach(payment => { %>
+                                    <li>Tranche <%= payment.classId %>: <%= payment.amount %> mUSD deposited</li>
+                                <% }) %>
+                            </ul>
+                        </div>
+
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        12. Distribute payments
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    After payments are made, the admin can call distributePayments() to transfer the due funds to the investors. The 
+                    function first calculates the correct payout, transfers the funds to each investor, then burns the correct amount of
+                    ERC-3475 tokens. Finally it reduces the payments mapping.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function distributePayments(
+        uint8 classId,
+        uint256 seriesId
+    ) external onlyAdmin {
+        uint256 totalPayment = payments[classId][seriesId];
+        require(totalPayment > 0, "Pool: no funds to distribute");
+
+        address[] storage investors = tranches[classId][seriesId].investors;
+        uint256 totalInvested;
+        uint256 totalExpectedPayout;
+        
+        // Calculate total invested amount and total expected payout (principal + interest)
+        uint16 interestRate = tranches[classId][seriesId].interestRateBps;
+        for (uint i = 0; i < investors.length; i++) {
+            uint256 principalAmount = investorHoldings[classId][seriesId][investors[i]];
+            totalInvested += principalAmount;
+            // Calculate expected return: principal + (principal * interestRate / 10000)
+            uint256 interestAmount = (principalAmount * interestRate) / 10000;
+            totalExpectedPayout += principalAmount + interestAmount;
+        }
+        require(totalInvested > 0, "Pool: no investors");
+
+        // Check if we have enough funds to pay full returns
+        bool fullPayout = totalPayment >= totalExpectedPayout;
+        
+        for (uint i = 0; i < investors.length; i++) {
+            address inv = investors[i];
+            uint256 holding = investorHoldings[classId][seriesId][inv];
+            
+            if (holding > 0) {
+                uint256 share;
+                
+                if (fullPayout) {
+                    // Pay full principal + interest
+                    uint256 interestAmount = (holding * interestRate) / 10000;
+                    share = holding + interestAmount;
+                } else {
+                    // Pro-rata distribution of available funds based on expected returns
+                    uint256 expectedReturn = holding + (holding * interestRate) / 10000;
+                    share = (totalPayment * expectedReturn) / totalExpectedPayout;
+                }
+                
+                if (share > 0) {
+                    IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+                    txs[0] = IERC3475.Transaction({
+                        classId: classId,
+                        nonceId: seriesId,
+                        amount: holding  // Burn the original token amount
+                    });
+                    trancheToken.burn(inv, txs);
+
+                    require(
+                        stablecoin.transfer(inv, share),
+                        "Pool: transfer failed"
+                    );
+
+                    investorHoldings[classId][seriesId][inv] = 0;  // Reset to 0 after full payout
+                    paidOut[classId][seriesId][inv] += share;
+                    payments[classId][seriesId] -= share;
+
+                    emit PaymentDistributed(classId, seriesId, inv, share);
+                }
+            }
+        }
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    Click on "Distribute payments" to connect with the admin wallet and distribute the funds.
+                </span>
+                <div class="content-bullet">
+                    <% if (step12 === false) { %>
+                        <form class="deploy-contract-form" id="distribute-payments-form" action="/distribute-payments" method="post">
+                            <button type="submit" id="deploy-contract-button"><i class="fa-solid fa-magnifying-glass" style="padding-right:5%;"></i> Distribute payments </button>
+                        </form>
+                    <% } else if (typeof step12 === 'object' && step12.distributionComplete) { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Payments distributed </button>
+                        <div id="contract-balance">
+                            Distribution Summary
+                            <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                            <ul style="list-style-type:none;">
+                                <li>Interest Rate: <%= step12.interestRate %>%</li>
+                                <li>Total Expected Payout: <%= step12.totalExpected %> mUSD</li>
+                                <li>Total Available: <%= step12.totalAvailable %> mUSD</li>
+                                <li>
+                                    Status: 
+                                    <% if (step12.fullyFunded) { %>
+                                        <span style="color: #4CAF50">Full Returns Paid</span>
+                                    <% } else { %>
+                                        <span style="color: #FF5722">Pro-rata Distribution</span>
+                                    <% } %>
+                                </li>
+                            </ul>
+                        </div>
+                        <% if (step12.investorDetails && step12.investorDetails.length > 0) { %>
+                            <div id="contract-balance">
+                                Investor Breakdown
+                                <i class="fa-solid fa-chevron-right" style="padding-left:5%;font-size:30px;"></i>
+                                <ul style="list-style-type:none;">
+                                    <% step12.investorDetails.forEach(investor => { %>
+                                        <li>
+                                            <strong>Investor:</strong> <%= investor.investor.substring(0, 10) %>...
+                                            <br>Principal: <%= investor.principal %> mUSD
+                                            <br>Expected Interest: <%= investor.expectedInterest %> mUSD  
+                                            <br>Total Expected: <%= investor.expectedTotal %> mUSD
+                                        </li>
+                                    <% }) %>
+                                </ul>
+                            </div>
+                        <% } %>
+                    <% } else { %>
+                        <button type="submit" id="deployed-contract-button"><i class="fa-solid fa-check" style="padding-right:5%;" deactivated></i> Payments distributed </button>
+                    <% } %>
+                </div>
+            </div>
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        13. Utility functions
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    The contract contains utility getter functions that allow to retrieve data from the blockchain. The function getInvestors()
+                    retrieves all the investors active in a certain tranche. The function getLoanContracts() retrieves all the originating contracts 
+                    for the ERC-721 tokens pooled in a certain tranche. The function getLoanIds() retrieves the loanIds of the pooled tokens in a certain tranche.
+                    These functions are set to "view", meaning that they can be called without paying gas fees and are used in a dApp to simply get data from the contract.
+                </span>
+                <div id="code-snippet">
+                    <pre style="overflow-x:scroll;"><code>
+    function getInvestors(uint8 classId, uint256 seriesId) external view returns (address[] memory) {
+        return tranches[classId][seriesId].investors;
+    }
+
+    function getLoanContracts(uint8 classId, uint256 seriesId)
+        external
+        view
+        returns (address[] memory)
+    {
+        return tranches[classId][seriesId].loanContracts;
+    }
+
+    function getLoanIds(uint8 classId, uint256 seriesId)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return tranches[classId][seriesId].loanIds;
+    }
+                    </code></pre>
+                </div>
+                <span id="instructions-1">
+                    These utility functions provide read-only access to the contract data for transparency and verification purposes.
+                </span>
+            </div>
+
+
+
+
+            
+            <div class="bullet-point">
+                <div class="header-bullet">
+                    <h2>
+                        Full smart contract
+                    </h2>
+                </div>
+                <span id="instructions-1">
+                    This suite of smart contracts implements a decentralized lending and securitization system using NFTs and ERC-3475 
+                    tokens. The LoanNFT contract mints unique ERC-721 tokens representing individual loans, each with on-chain metadata 
+                    including principal, interest rate, maturity date, and borrower. These NFTs are then pooled into tranches by the Pool 
+                    contract, which groups multiple loan NFTs into structured investment products. The TrancheToken, an ERC-3475 
+                    implementation, represents fractional ownership in these loan pools. Investors can purchase tranche tokens from the 
+                    pool by depositing stablecoins (e.g., MockUSD), and their contributions are tracked. The pool administrator can deposit 
+                    repayments into each tranche, and upon distribution, investors receive their share of principal and interest pro-rata. 
+                    Tranche tokens are burned upon payout to prevent reuse. This system enables transparent, on-chain creation of loan-backed 
+                    securities, allowing investors to participate in decentralized credit markets while managing risk through pooled tranching 
+                    and tokenized investment claims.
+                </span>
+                <div id="code-snippet-2">
+                    <pre style="overflow-x:scroll;"><code>
+    // SPDX-License-Identifier: MIT
+    pragma solidity ^0.8.0;
+    
+    import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+    import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+    import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+    import "erc3475/ERC3475.sol";
+    import "erc3475/IERC3475.sol";
+    
+    contract MockERC20 is ERC20 {
+        constructor() ERC20("MockUSD", "mUSD") {}
+        function mint(address to, uint256 amt) external {
+            _mint(to, amt); 
+        }
+    }
+    
+    /// @title LoanNFT: mint NFTs to represent individual loans with on-chain metadata
+    contract LoanNFT is ERC721 {
+        uint256 private _nextTokenId;
+        address public admin;
+    
+        /// @notice On-chain data for each loan NFT
+        struct LoanData {
+            uint256 principal;          // total loan value in smallest token units
+            uint16  interestRateBps;    // interest rate in basis points (bps)
+            uint64  maturityTimestamp;  // UNIX timestamp of loan maturity
+            address borrower;           // borrower address for reference
+        }
+    
+        // maps tokenId to its LoanData struct
+        mapping(uint256 => LoanData) public loanData;
+    
+        event LoanMinted(
+            uint256 indexed tokenId,
+            address indexed to,
+            uint256 principal,
+            uint16 interestRateBps,
+            uint64 maturityTimestamp
+        );
+    
+        constructor() ERC721("LoanNFT", "LNFT") {
+            admin = msg.sender;
+        }
+    
+        /// @notice Mint a new loan NFT with metadata
+        /// @param to            Recipient of the loan NFT (borrower or pool)
+        /// @param principal     Total loan value (in smallest unit, e.g. cents)
+        /// @param interestRateBps Interest rate in basis points (e.g. 300 = 3%)
+        /// @param maturityTimestamp UNIX timestamp when loan matures
+        function mint(
+            address to,
+            uint256 principal,
+            uint16 interestRateBps,
+            uint64 maturityTimestamp
+        ) external returns (uint256) {
+            require(msg.sender == admin, "LoanNFT: only admin can mint");
+            uint256 tokenId = ++_nextTokenId;
+            _mint(to, tokenId);
+            loanData[tokenId] = LoanData({
+                principal: principal,
+                interestRateBps: interestRateBps,
+                maturityTimestamp: maturityTimestamp,
+                borrower: to                              /// Borrower's address, here simplified with token target
+            });
+            emit LoanMinted(tokenId, to, principal, interestRateBps, maturityTimestamp);
+            return tokenId;
+        }
+    
+        /// @notice Retrieve metadata for a given loan NFT
+        /// @param tokenId ID of the loan NFT
+        /// @return LoanData struct with all on-chain metadata
+        function getLoanData(uint256 tokenId) external view returns (LoanData memory) {
+            require(ownerOf(tokenId) != address(0), "LoanNFT: query for nonexistent token");
+            return loanData[tokenId];
+        }
+    }
+    
+    /// @title TrancheToken: ERC-3475 token to represent tranches of pooled loans
+    contract TrancheToken is ERC3475 {
+    
+        address public owner;
+    
+        constructor(address _owner) ERC3475() {
+            owner = _owner;
+        }
+    }
+    
+    /// @title Pool: collects LoanNFTs, creates ERC-3475 tranches, handles investments & payouts
+    contract Pool {
+        address public admin;
+        LoanNFT public loanNFT;
+        TrancheToken public trancheToken;
+        IERC20 public stablecoin;
+    
+        struct TrancheInfo {
+            address[] loanContracts;
+            uint256[] loanIds;
+            uint256 totalNotional;
+            uint16  interestRateBps;
+            address[] investors;
+        }
+    
+        // maps classId and seriesId to certain tranche
+        mapping(uint8 => mapping(uint256 => TrancheInfo)) public tranches;
+    
+        // payments available for redemption per class/series
+        mapping(uint8 => mapping(uint256 => uint256)) public payments;
+    
+        // series counter per class
+        mapping(uint8 => uint256) public nextSeries;
+    
+        // map investor holdings (tranche tokens)
+        mapping(uint8 => mapping(uint256 => mapping(address => uint256))) public investorHoldings;
+    
+        // cumulative payouts made to investors
+        mapping(uint8 => mapping(uint256 => mapping(address => uint256))) public paidOut;
+    
+        event PaymentDeposited(uint8 indexed classId, uint256 indexed seriesId, uint256 amount);
+        event PaymentDistributed(uint8 indexed classId, uint256 indexed seriesId, address indexed investor, uint256 amount);
+        event Invested(address indexed investor, uint8 indexed classId, uint256 indexed seriesId, uint256 amount);
+    
+        modifier onlyAdmin() {
+            require(msg.sender == admin, "Pool: only admin");
+            _;
+        }
+    
+        constructor(address _loanNFT, address _stablecoin) {
+            admin = msg.sender;
+            loanNFT = LoanNFT(_loanNFT);
+            stablecoin = IERC20(_stablecoin);
+            trancheToken = new TrancheToken(address(this));
+        }
+    
+        /// @notice Create a new tranche series backed by specific loan NFTs
+        function createTranche(
+            uint8 classId,
+            uint256[] calldata loans,
+            uint256 notional,
+            uint16 rateBps
+        ) external onlyAdmin returns (uint256) {
+            uint256 seriesId = ++nextSeries[classId];
+            address[] memory contracts = new address[](loans.length);
+            for (uint i = 0; i < loans.length; i++) {
+                contracts[i] = address(loanNFT);
+            }
+            // save tranche infos to struct
+            tranches[classId][seriesId] = TrancheInfo({
+                loanContracts: contracts,
+                loanIds: loans,
+                totalNotional: notional,
+                interestRateBps: rateBps,
+                investors: new address[](0)
+            });
+    
+            // mint tranche tokens to pool for sale
+            IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+            txs[0] = IERC3475.Transaction({
+                classId: classId,
+                nonceId: seriesId,
+                amount: notional
+            });
+            trancheToken.issue(address(this), txs);
+            return seriesId;
+        }
+    
+        /// @notice Investor buys tranche tokens 1:1 for stablecoin
+        function invest(
+            uint8 classId,
+            uint256 seriesId,
+            uint256 amount
+        ) external {
+            require(
+                stablecoin.transferFrom(msg.sender, address(this), amount),
+                "Pool: payment failed"
+            );
+    
+            // record first-time investor
+            if (investorHoldings[classId][seriesId][msg.sender] == 0) {
+                tranches[classId][seriesId].investors.push(msg.sender);
+            }
+    
+            IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+            txs[0] = IERC3475.Transaction({
+                classId: classId,
+                nonceId: seriesId,
+                amount: amount
+            });
+            trancheToken.transferFrom(address(this), msg.sender, txs);
+    
+            investorHoldings[classId][seriesId][msg.sender] += amount;
+            emit Invested(msg.sender, classId, seriesId, amount);
+        }
+    
+        /// @notice Admin deposits borrower payment into the pool for a tranche
+        function depositPayment(
+            uint8 classId,
+            uint256 seriesId,
+            uint256 amount
+        ) external onlyAdmin {
+            require(
+                stablecoin.transferFrom(msg.sender, address(this), amount),
+                "Pool: payment failed"
+            );
+            payments[classId][seriesId] += amount;
+            emit PaymentDeposited(classId, seriesId, amount);
+        }
+    
+        /// @notice Pro-rata distribution of all available payments, burns tokens, tracks payouts
+        function distributePayments(
+            uint8 classId,
+            uint256 seriesId
+        ) external onlyAdmin {
+            uint256 totalPayment = payments[classId][seriesId];
+            require(totalPayment > 0, "Pool: no funds to distribute");
+    
+            address[] storage investors = tranches[classId][seriesId].investors;
+            uint256 totalInvested;
+            uint256 totalExpectedPayout;
+            
+            // Calculate total invested amount and total expected payout (principal + interest)
+            uint16 interestRate = tranches[classId][seriesId].interestRateBps;
+            for (uint i = 0; i < investors.length; i++) {
+                uint256 principalAmount = investorHoldings[classId][seriesId][investors[i]];
+                totalInvested += principalAmount;
+                // Calculate expected return: principal + (principal * interestRate / 10000)
+                uint256 interestAmount = (principalAmount * interestRate) / 10000;
+                totalExpectedPayout += principalAmount + interestAmount;
+            }
+            require(totalInvested > 0, "Pool: no investors");
+    
+            // Check if we have enough funds to pay full returns
+            bool fullPayout = totalPayment >= totalExpectedPayout;
+            
+            for (uint i = 0; i < investors.length; i++) {
+                address inv = investors[i];
+                uint256 holding = investorHoldings[classId][seriesId][inv];
+                
+                if (holding > 0) {
+                    uint256 share;
+                    
+                    if (fullPayout) {
+                        // Pay full principal + interest
+                        uint256 interestAmount = (holding * interestRate) / 10000;
+                        share = holding + interestAmount;
+                    } else {
+                        // Pro-rata distribution of available funds based on expected returns
+                        uint256 expectedReturn = holding + (holding * interestRate) / 10000;
+                        share = (totalPayment * expectedReturn) / totalExpectedPayout;
+                    }
+                    
+                    if (share > 0) {
+                        IERC3475.Transaction[] memory txs = new IERC3475.Transaction[](1);
+                        txs[0] = IERC3475.Transaction({
+                            classId: classId,
+                            nonceId: seriesId,
+                            amount: holding  // Burn the original token amount
+                        });
+                        trancheToken.burn(inv, txs);
+    
+                        require(
+                            stablecoin.transfer(inv, share),
+                            "Pool: transfer failed"
+                        );
+    
+                        investorHoldings[classId][seriesId][inv] = 0;  // Reset to 0 after full payout
+                        paidOut[classId][seriesId][inv] += share;
+                        payments[classId][seriesId] -= share;
+    
+                        emit PaymentDistributed(classId, seriesId, inv, share);
+                    }
+                }
+            }
+        }
+    
+        /// @notice Calculate expected return for an investor (principal + interest)
+        function getExpectedReturn(
+            uint8 classId,
+            uint256 seriesId,
+            address investor
+        ) external view returns (uint256) {
+            uint256 principal = investorHoldings[classId][seriesId][investor];
+            uint16 interestRate = tranches[classId][seriesId].interestRateBps;
+            uint256 interest = (principal * interestRate) / 10000;
+            return principal + interest;
+        }
+    
+        /// @notice Calculate total expected payout for a tranche
+        function getTotalExpectedPayout(
+            uint8 classId,
+            uint256 seriesId
+        ) external view returns (uint256) {
+            address[] storage investors = tranches[classId][seriesId].investors;
+            uint256 totalExpected;
+            uint16 interestRate = tranches[classId][seriesId].interestRateBps;
+            
+            for (uint i = 0; i < investors.length; i++) {
+                uint256 principal = investorHoldings[classId][seriesId][investors[i]];
+                uint256 interest = (principal * interestRate) / 10000;
+                totalExpected += principal + interest;
+            }
+            return totalExpected;
+        }
+    
+        function getInvestors(uint8 classId, uint256 seriesId) external view returns (address[] memory) {
+            return tranches[classId][seriesId].investors;
+        }
+    
+        function getLoanContracts(uint8 classId, uint256 seriesId)
+            external
+            view
+            returns (address[] memory)
+        {
+            return tranches[classId][seriesId].loanContracts;
+        }
+    
+        function getLoanIds(uint8 classId, uint256 seriesId)
+            external
+            view
+            returns (uint256[] memory)
+        {
+            return tranches[classId][seriesId].loanIds;
+        }
+    }                                                                                                                                         
+                    </code></pre>
+                </div>
+            </div>
+        </div>
+        <canvas id="waveCanvas"></canvas>
+        <script>
+            const canvas = document.getElementById("waveCanvas");
+            const ctx = canvas.getContext("2d");
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            const particleSpacing = 10;
+            const waveSpeed = 0.0008;
+
+            let particles = [];
+
+            function createParticles() {
+            particles = [];
+            for (let y = 0; y < height; y += particleSpacing) {
+                for (let x = 0; x < width; x += particleSpacing) {
+                particles.push({ baseX: x, baseY: y });
+                }
+            }
+            }
+
+            function drawParticles(time) {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = "#2E7D32";
+
+            const t = time * waveSpeed;
+
+            particles.forEach(p => {
+                const wave1 = Math.sin(p.baseX * 0.04 + t) * 6;
+                const wave2 = Math.cos(p.baseY * 0.05 + t * 0.8) * 6;
+                const wave3 = Math.sin((p.baseX + p.baseY) * 0.03 + t * 1.2) * 4;
+                const wave4 = Math.cos((p.baseX - p.baseY) * 0.03 + t * 0.9) * 4;
+
+                const offsetX = wave1 + wave3;
+                const offsetY = wave2 + wave4;
+
+                const x = p.baseX + offsetX;
+                const y = p.baseY + offsetY;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            }
+
+            function animate(time) {
+            drawParticles(time);
+            requestAnimationFrame(animate);
+            }
+
+            window.addEventListener("resize", () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            createParticles();
+            });
+
+            createParticles();
+            animate(0);
+        </script>
+        <script src="/script.js"></script>
+    </body>
+</html>

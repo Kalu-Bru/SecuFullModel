@@ -1,0 +1,25 @@
+{
+  "name": "secumodel",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.2.0",
+    "crypto": "^1.0.1",
+    "danfojs-node": "^1.2.0",
+    "datetime": "^0.0.3",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "erc3475": "^0.0.3",
+    "ethers": "^6.15.0",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "hardhat": "^2.22.19",
+    "nodemon": "^3.1.9"
+  }
+}
